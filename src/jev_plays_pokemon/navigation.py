@@ -211,12 +211,34 @@ def execute_button(pyboy: PyBoy, button: str) -> None:
 # `2389-research/jev-plays-pokemon`'s `battle.py`, whose reading is validated
 # against a captured real-battle save state, not address-table-only).
 _MENU_CURSOR_ADDRESS = 0xCC26
+_TOP_MENU_ITEM_Y_ADDRESS = 0xCC24
+_TOP_MENU_ITEM_X_ADDRESS = 0xCC25
+
+# `DisplayBattleMenu` (pret/pokered `engine/battle/core.asm`) runs the main
+# battle menu as two one-column menus at screen row $e: x $9 holds FIGHT/ITEM,
+# x $f holds PKMN/RUN, and `wCurrentMenuItem` is only the row within the
+# column that has the cursor.
+_MAIN_BATTLE_MENU_ROW_Y = 0xE
+_MAIN_BATTLE_MENU_LEFT_X = 0x9
+_MAIN_BATTLE_MENU_RIGHT_X = 0xF
 
 
 def read_menu_cursor(pyboy: PyBoy) -> int:
     """Read Gen 1's live menu-cursor index for whatever battle-menu screen is
-    currently on screen (`wCurrentMenuItem`) - see `_MENU_CURSOR_ADDRESS`."""
-    return pyboy.memory[_MENU_CURSOR_ADDRESS]
+    currently on screen (`wCurrentMenuItem`) - see `_MENU_CURSOR_ADDRESS`.
+
+    On the main battle menu this is the 2x2 grid index that
+    `main_battle_menu_delta_buttons` uses (row * 2 + column), built from the
+    row and the column's x position."""
+    memory = pyboy.memory
+    row = memory[_MENU_CURSOR_ADDRESS]
+    top_x = memory[_TOP_MENU_ITEM_X_ADDRESS]
+    if memory[_TOP_MENU_ITEM_Y_ADDRESS] == _MAIN_BATTLE_MENU_ROW_Y and top_x in (
+        _MAIN_BATTLE_MENU_LEFT_X,
+        _MAIN_BATTLE_MENU_RIGHT_X,
+    ):
+        return row * 2 + (top_x == _MAIN_BATTLE_MENU_RIGHT_X)
+    return row
 
 
 def menu_list_delta_buttons(current: int, target: int) -> tuple[str, ...]:

@@ -3768,6 +3768,20 @@ def test_read_menu_cursor_reads_the_live_wcurrentmenuitem_byte(pyboy_in_bedroom)
     assert read_menu_cursor(pyboy_in_bedroom) == 2
 
 
+@pytest.mark.parametrize(
+    ("top_x", "row", "grid_index"),
+    [(0x9, 0, 0), (0xF, 0, 1), (0x9, 1, 2), (0xF, 1, 3)],
+)
+def test_read_menu_cursor_gives_the_grid_index_on_the_main_battle_menu(
+    pyboy_in_bedroom, top_x, row, grid_index
+):
+    pyboy_in_bedroom.memory[0xCC24] = 0xE
+    pyboy_in_bedroom.memory[0xCC25] = top_x
+    pyboy_in_bedroom.memory[0xCC26] = row
+
+    assert read_menu_cursor(pyboy_in_bedroom) == grid_index
+
+
 def test_the_growth_rate_table_in_the_rom_matches_pret_pokered_row_for_row():
     """The six curves, found by the byte string this file's transcription packs
     to. A row out by one nibble, or the table in the wrong place, and the
