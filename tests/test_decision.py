@@ -772,6 +772,26 @@ def test_pyboy_action_executor_does_not_render_an_extra_frame_when_the_macro_run
     assert render_calls == []
 
 
+@pytest.mark.parametrize(("moved", "pressed"), [(True, []), (False, ["b"])])
+def test_pyboy_action_executor_backs_out_with_b_when_the_macro_went_nowhere(
+    moved, pressed
+):
+    state = _game_state()
+    target = NavigationTarget(map_id=40, x=4, y=5)
+    presses: list[str] = []
+    execute_action = make_pyboy_action_executor(
+        cast(PyBoy, _FakePyBoy()),
+        extract_state=lambda pyboy: state,
+        resolve_target=lambda milestone, current_map: target,
+        run_macro=lambda pyboy, t: moved,
+        press_button=lambda pyboy, button: presses.append(button),
+    )
+
+    execute_action(NAVIGATION_MACRO_ACTION)
+
+    assert presses == pressed
+
+
 def test_pyboy_action_executor_renders_a_frame_when_the_macro_is_a_noop():
     state = _game_state()
     pyboy = cast(PyBoy, _FakePyBoy())

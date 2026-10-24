@@ -696,7 +696,10 @@ def make_pyboy_action_executor(
             milestone_progress = track_milestones(state.event_flags, state.badges)
             target = resolve_target(milestone_progress.current, state.map_id)
             if target is not None:
-                run_macro(pyboy, target)
+                # A menu holds the player still without opening a dialog, so a
+                # walk that went nowhere backs out of whatever is on screen.
+                if not run_macro(pyboy, target):
+                    press_button(pyboy, "b")
             else:
                 render_frame(pyboy)
         elif _is_battle_menu_action(action):
