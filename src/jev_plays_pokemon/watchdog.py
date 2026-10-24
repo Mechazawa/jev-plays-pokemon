@@ -186,6 +186,7 @@ def spawn_run_subprocess(
     dialog_decode_backend: str | None = None,
     typesafe_api_key: str | None = None,
     jeff_url: str | None = None,
+    game_speed: int | None = None,
 ) -> subprocess.Popen:
     """Spawn ``jev-plays-pokemon run`` as a subprocess, forwarding every
     setting the watchdog itself resolved (ADR 0001) - not just `rom_path` -
@@ -212,6 +213,7 @@ def spawn_run_subprocess(
         "--dialog-decode-backend": dialog_decode_backend,
         "--typesafe-api-key": typesafe_api_key,
         "--jeff-url": jeff_url,
+        "--game-speed": None if game_speed is None else str(game_speed),
     }
     for flag, value in global_overrides.items():
         if value is not None:

@@ -180,5 +180,6 @@ def test_watchdog_subcommand_builds_a_spawn_seam_and_runs_it(monkeypatch, tmp_pa
             "dialog_decode_backend": None,
             "typesafe_api_key": None,
             "jeff_url": None,
+            "game_speed": None,
         }
     ]

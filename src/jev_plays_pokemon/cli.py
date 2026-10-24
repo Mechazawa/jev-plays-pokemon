@@ -112,6 +112,12 @@ def main_callback(
         "--jeff-url",
         help="Overrides JEFF_URL. When set, Jeff decides each turn instead of Jev.",
     ),
+    game_speed: int | None = typer.Option(
+        None,
+        "--game-speed",
+        help="Overrides GAME_SPEED: Game Boy frames the emulator runs per "
+        "display frame. Default 1, real time.",
+    ),
     env_file: Path = typer.Option(
         Path(".env"),
         "--env-file",
@@ -137,6 +143,7 @@ def main_callback(
         dialog_decode_backend=dialog_decode_backend,
         typesafe_api_key=typesafe_api_key,
         jeff_url=jeff_url,
+        game_speed=game_speed,
     )
     ctx.obj = settings
     if ctx.invoked_subcommand is None:
@@ -247,6 +254,7 @@ def watchdog_command(
             dialog_decode_backend=settings.dialog_decode_backend,
             typesafe_api_key=settings.typesafe_api_key,
             jeff_url=settings.jeff_url,
+            game_speed=settings.game_speed,
         ),
         heartbeat_path=heartbeat_path,
         heartbeat_timeout_seconds=heartbeat_timeout_seconds,

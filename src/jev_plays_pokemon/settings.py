@@ -31,10 +31,11 @@ class Settings(BaseSettings):
     dialog_decode_backend: str | None = None
     typesafe_api_key: str | None = None
     jeff_url: str | None = None
+    game_speed: int | None = None
 
 
 def load_settings(
-    env_file: str | Path = ".env", **cli_overrides: str | None
+    env_file: str | Path = ".env", **cli_overrides: str | int | None
 ) -> Settings:
     """Resolve `Settings`, giving a non-`None` `cli_overrides` value top priority.
 

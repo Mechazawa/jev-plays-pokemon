@@ -54,7 +54,10 @@ class EmulatorClockHandle:
 
 
 def start_emulator_clock(
-    pyboy: PyBoy, lock: threading.Lock, interval_seconds: float
+    pyboy: PyBoy,
+    lock: threading.Lock,
+    interval_seconds: float,
+    frames_per_tick: int = 1,
 ) -> EmulatorClockHandle:
     """Run `pyboy.tick(1, render=True)` on its own background daemon thread,
     once per `interval_seconds`, forever - independent of, and never
@@ -77,7 +80,7 @@ def start_emulator_clock(
         while not stop_event.is_set():
             try:
                 with lock:
-                    pyboy.tick(1, True)
+                    pyboy.tick(frames_per_tick, True)
             except Exception:
                 logger.exception("emulator clock tick failed")
             stop_event.wait(interval_seconds)

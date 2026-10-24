@@ -318,7 +318,10 @@ def main(
         frame_capture, interval_seconds=display_interval_seconds
     )
     emulator_clock = start_emulator_clock(
-        pyboy, pyboy_lock, interval_seconds=display_interval_seconds
+        pyboy,
+        pyboy_lock,
+        interval_seconds=display_interval_seconds,
+        frames_per_tick=settings.game_speed or 1,
     )
     server = start_stream_surface_server(
         surface,

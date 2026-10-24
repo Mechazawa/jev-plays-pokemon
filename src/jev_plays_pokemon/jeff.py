@@ -121,7 +121,7 @@ class JeffClient:
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {
                     "role": "user",
-                    "content": f"State: {json.dumps(state)}\n\n"
+                    "content": f"State: {json.dumps(state, separators=(',', ':'))}\n\n"
                     f"{choice.instructions}\n{options}",
                 },
             ],
