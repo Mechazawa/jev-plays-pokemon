@@ -30,6 +30,8 @@ from jev_plays_pokemon.stream_surface import (
     stream_logger,
 )
 
+_EVENT_OAK_APPEARED_IN_PALLET = 39
+
 
 def _game_state(**overrides) -> GameState:
     base = GameState(
@@ -37,7 +39,7 @@ def _game_state(**overrides) -> GameState:
         money=0,
         inventory=(),
         badges=(),
-        event_flags=frozenset(),
+        event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET}),
         battle=BattleState(
             in_battle=False,
             battle_type="none",
@@ -155,7 +157,9 @@ def test_surface_reflects_each_decision_logged_by_the_decision_core():
     surface = StreamSurface()
     pre_starter = _game_state()
     # Event flag 34 = got_starter complete (see milestones.py).
-    post_starter = _game_state(event_flags=frozenset({34}))
+    post_starter = _game_state(
+        event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET, 34})
+    )
     states = [pre_starter, post_starter]
     client = _FakeJevClient([("a", 0.91), (NAVIGATION_MACRO_ACTION, 0.55)])
 
@@ -168,13 +172,16 @@ def test_surface_reflects_each_decision_logged_by_the_decision_core():
     assert first["decision_count"] == 1
     assert first["action"] == "a"
     assert first["confidence"] == 0.91
-    assert first["milestones"]["completed"] == []
+    assert [m["id"] for m in first["milestones"]["completed"]] == ["met_oak"]
     assert first["milestones"]["current"]["id"] == "got_starter"
 
     assert second["decision_count"] == 2
     assert second["action"] == NAVIGATION_MACRO_ACTION
     assert second["confidence"] == 0.55
-    assert [m["id"] for m in second["milestones"]["completed"]] == ["got_starter"]
+    assert [m["id"] for m in second["milestones"]["completed"]] == [
+        "met_oak",
+        "got_starter",
+    ]
     assert second["milestones"]["current"]["id"] == "got_oaks_parcel"
     assert second["milestones"]["future"][0]["id"] == "got_pokedex"
 

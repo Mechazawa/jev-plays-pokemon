@@ -58,6 +58,7 @@ from typesafe_sdk import Choice, JSONContent, TypeSafeClient
 
 from jev_plays_pokemon import emulator, navigation
 from jev_plays_pokemon.game_state import GameState, extract_game_state
+from jev_plays_pokemon.jeff import JeffClient
 from jev_plays_pokemon.lookup.moves import move_name
 from jev_plays_pokemon.milestones import Milestone, MilestoneProgress, track_milestones
 from jev_plays_pokemon.navigation import (
@@ -70,6 +71,7 @@ from jev_plays_pokemon.navigation import (
     resolve_navigation_target,
 )
 from jev_plays_pokemon.resilience import TurnSkipped
+from jev_plays_pokemon.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -385,6 +387,13 @@ def build_jev_client(*, api_key: str | None = None) -> TypeSafeClient:
     return TypeSafeClient(api_key=api_key)
 
 
+def build_decision_client(settings: Settings) -> JevClient:
+    """Jeff when `JEFF_URL` is set, otherwise Jev."""
+    if settings.jeff_url:
+        return JeffClient.from_url(settings.jeff_url)
+    return build_jev_client(api_key=settings.typesafe_api_key)
+
+
 @dataclass(frozen=True)
 class Decision:
     action: str
@@ -529,10 +538,12 @@ def _build_action_question(state: GameState, milestone: Milestone | None) -> Cho
     macro - but only when `out_of_battle_action_space` says the macro can
     actually resolve a destination for `milestone` right now (#83).
     """
-    if state.battle.in_battle:
+    # A party whose every member has fainted has no battle action left: the
+    # game only waits for A to clear the "fainted!" text before the blackout.
+    if state.battle.in_battle and (criteria := _battle_action_criteria(state)):
         return Choice(
             instructions="Which single battle action should be taken next?",
-            criteria=_battle_action_criteria(state),
+            criteria=criteria,
         )
     action_space = out_of_battle_action_space(milestone, state.map_id)
     criteria = {action: _ACTION_CRITERIA[action] for action in action_space}

@@ -47,6 +47,7 @@ from dataclasses import dataclass
 from jev_plays_pokemon.lookup import map_name
 
 # Map IDs, per `constants/map_constants.asm`'s `const_def` position.
+_MAP_PALLET_TOWN = 0
 _MAP_OAKS_LAB = 40
 _MAP_VIRIDIAN_MART = 42
 _MAP_VIRIDIAN_GYM = 45
@@ -63,6 +64,7 @@ _MAP_CHAMPIONS_ROOM = 120
 
 # Event flag bit positions, per `constants/event_constants.asm`'s
 # `const_def`/`const_skip`/`const_next` enumeration (see module docstring).
+_EVENT_OAK_APPEARED_IN_PALLET = 39
 _EVENT_GOT_STARTER = 34
 _EVENT_GOT_OAKS_PARCEL = 57  # Viridian Mart clerk hands over the parcel.
 _EVENT_GOT_POKEDEX = 37  # Set alongside EVENT_OAK_GOT_PARCEL on delivery.
@@ -127,6 +129,20 @@ class _MilestoneCheck:
 
 
 _MILESTONES: tuple[_MilestoneCheck, ...] = (
+    # Oak's Lab only runs its starter script after Oak stops the player at
+    # Pallet Town's north exit (`scripts/PalletTown.asm` fires on wYCoord 1)
+    # and leads them in. A player who walks into the lab alone finds no Oak,
+    # and the Poke Balls only answer "Those are POKe BALLs". The milestone
+    # completes when Oak appears, so the macro already targets the starter
+    # ball during the walk-in cutscene and never walks back out against it.
+    _MilestoneCheck(
+        Milestone(
+            "met_oak",
+            "Walk north out of Pallet Town until Professor Oak stops you",
+            _target(_MAP_PALLET_TOWN, 10, 1),
+        ),
+        event_flag=_EVENT_OAK_APPEARED_IN_PALLET,
+    ),
     _MilestoneCheck(
         Milestone(
             "got_starter",

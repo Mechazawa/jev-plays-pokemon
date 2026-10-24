@@ -15,6 +15,8 @@ from jev_plays_pokemon.stream_surface import StreamSurface, stream_logger
 from jev_plays_pokemon.stuck_detection import StuckRunAborted
 from jev_plays_pokemon.watchdog import EXIT_CODE_STUCK_ABORT
 
+_EVENT_OAK_APPEARED_IN_PALLET = 39
+
 
 def _game_state(**overrides) -> GameState:
     base = GameState(
@@ -22,7 +24,7 @@ def _game_state(**overrides) -> GameState:
         money=0,
         inventory=(),
         badges=(),
-        event_flags=frozenset(),
+        event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET}),
         battle=BattleState(
             in_battle=False,
             battle_type="none",
@@ -390,7 +392,10 @@ def test_run_loop_saves_when_the_current_milestone_transitions():
     client = _ScriptedJevClient([("a", 0.9), ("a", 0.9)])
     saves: list[None] = []
     # got_starter (turn 1) -> got_oaks_parcel (turn 2, event flag 34 set).
-    states = [_game_state(), _game_state(event_flags=frozenset({34}))]
+    states = [
+        _game_state(),
+        _game_state(event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET, 34})),
+    ]
     calls = {"count": 0}
 
     def state_source():
@@ -442,7 +447,10 @@ def test_run_loop_never_saves_when_no_save_snapshot_seam_is_given():
     # save_snapshot=None (the default) disables saving entirely - the same
     # shape every pre-#55 run_loop call already used.
     client = _ScriptedJevClient([("a", 0.9), ("a", 0.9)])
-    states = [_game_state(), _game_state(event_flags=frozenset({34}))]
+    states = [
+        _game_state(),
+        _game_state(event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET, 34})),
+    ]
     calls = {"count": 0}
 
     def state_source():

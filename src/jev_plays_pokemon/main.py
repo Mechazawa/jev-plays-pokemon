@@ -61,7 +61,7 @@ from jev_plays_pokemon.decision import (
     DecisionLogger,
     DialogTextSource,
     JevClient,
-    build_jev_client,
+    build_decision_client,
     make_pyboy_action_executor,
     run_turn,
 )
@@ -79,7 +79,6 @@ from jev_plays_pokemon.game_state import (
     GameState,
     extract_game_state,
 )
-from jev_plays_pokemon.jeff import JeffClient
 from jev_plays_pokemon.rate_limit import RateLimitedJevClient
 from jev_plays_pokemon.resilience import ResilientJevClient
 from jev_plays_pokemon.settings import Settings
@@ -241,7 +240,7 @@ def main(
 
     ``jev_client``/``rom_path``/``stream_port`` are overridable for a manual or
     scripted live run; with no arguments this reads ``TYPESAFE_API_KEY`` from
-    the environment (via :func:`decision.build_jev_client`), boots the repo's
+    the environment (via :func:`decision.build_decision_client`), boots the repo's
     own ROM through :mod:`emulator`, and binds the read-only stream surface to
     an ephemeral loopback port (see
     :func:`stream_surface.start_stream_surface_server` for reading it back).
@@ -275,11 +274,7 @@ def main(
     settings = settings or Settings()
 
     if jev_client is None:
-        jev_client = (
-            JeffClient.from_url(settings.jeff_url)
-            if settings.jeff_url
-            else build_jev_client(api_key=settings.typesafe_api_key)
-        )
+        jev_client = build_decision_client(settings)
     if max_calls_per_second is not None:
         jev_client = RateLimitedJevClient(
             jev_client, max_calls_per_second=max_calls_per_second

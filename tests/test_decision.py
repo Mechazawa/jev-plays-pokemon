@@ -37,6 +37,8 @@ from jev_plays_pokemon.milestones import (
 from jev_plays_pokemon.navigation import RAW_BUTTONS, NavigationTarget
 from jev_plays_pokemon.resilience import TurnSkipped
 
+_EVENT_OAK_APPEARED_IN_PALLET = 39
+
 
 def _game_state(**overrides) -> GameState:
     base = GameState(
@@ -44,7 +46,7 @@ def _game_state(**overrides) -> GameState:
         money=0,
         inventory=(),
         badges=(),
-        event_flags=frozenset(),
+        event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET}),
         battle=BattleState(
             in_battle=False,
             battle_type="none",
@@ -99,7 +101,7 @@ _ALL_BADGES = (
     "VOLCANOBADGE",
     "EARTHBADGE",
 )
-_ALL_EVENT_FLAGS = frozenset({34, 57, 37, 296, 1372, 2305})
+_ALL_EVENT_FLAGS = frozenset({39, 34, 57, 37, 296, 1372, 2305})
 
 # No milestone in milestones.py carries a tile-level target today (#83) - a
 # standalone fixture milestone (not one `track_milestones` would ever
@@ -234,7 +236,9 @@ def test_decide_action_low_confidence_is_still_returned_with_no_special_handling
 
 def test_decide_action_state_payload_reflects_the_current_objective():
     client = _FakeJevClient("a", 0.9)
-    state = _game_state(event_flags=frozenset({34}))  # got_starter complete
+    state = _game_state(
+        event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET, 34})
+    )  # got_starter complete
     progress = track_milestones(state.event_flags, state.badges)
     assert progress.current is not None
     assert progress.current.milestone_id == "got_oaks_parcel"
@@ -267,7 +271,7 @@ def test_decide_action_state_payload_is_the_documented_jev_input_shape():
             InventoryItem(item="POKé BALL", quantity=5),
         ),
         badges=("BOULDERBADGE",),
-        event_flags=frozenset({34, 57, 37}),
+        event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET, 34, 57, 37}),
         battle=BattleState(
             in_battle=True,
             battle_type="wild",
@@ -494,6 +498,20 @@ def test_battle_choice_forced_switch_on_faint_offers_only_living_switch_targets(
     criteria = _battle_criteria(state)
 
     assert criteria == {"SWITCH_TO_2": "Switch in SQUIRTLE (Lv.10)"}
+
+
+def test_battle_choice_with_the_whole_party_fainted_falls_back_to_raw_buttons():
+    state = _game_state(
+        party=(_mon(species="BULBASAUR", hp=0),),
+        battle=BattleState(
+            in_battle=True,
+            battle_type="trainer",
+            opponent_species="SQUIRTLE",
+            opponent_level=5,
+        ),
+    )
+
+    assert set(_battle_criteria(state)) >= set(RAW_BUTTONS)
 
 
 def test_battle_choice_replaces_rather_than_extends_the_static_action_space():

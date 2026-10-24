@@ -10,9 +10,13 @@ from jev_plays_pokemon.milestone_targets import (
 
 ROM_PATH = Path(__file__).resolve().parent.parent / "pokemon_red.gb"
 
-_EXPECTED_MILESTONE_IDS = {
-    check.milestone.milestone_id for check in milestones._MILESTONES
-}
+_FIXED_TILE_MILESTONE_IDS = {"met_oak"}
+_OBJECT_MILESTONES = [
+    check
+    for check in milestones._MILESTONES
+    if check.milestone.milestone_id not in _FIXED_TILE_MILESTONE_IDS
+]
+_EXPECTED_MILESTONE_IDS = {check.milestone.milestone_id for check in _OBJECT_MILESTONES}
 
 
 def test_every_milestone_has_exactly_one_object_selection():
@@ -46,6 +50,6 @@ def test_milestone_target_literals_match_the_roms_object_records():
             check.milestone.target.target_x,
             check.milestone.target.target_y,
         )
-        for check in milestones._MILESTONES
+        for check in _OBJECT_MILESTONES
     }
     assert resolved == pinned

@@ -1,6 +1,7 @@
 from jev_plays_pokemon.milestones import MilestoneTarget, track_milestones
 
 _EXPECTED_ORDER = (
+    "met_oak",
     "got_starter",
     "got_oaks_parcel",
     "got_pokedex",
@@ -21,6 +22,7 @@ _EXPECTED_ORDER = (
 # constants are private): keeps these fixtures asserting against literal
 # values sourced independently from pokered, so a future edit to the
 # production constants can't silently drag a stale test along with it.
+_EVENT_OAK_APPEARED_IN_PALLET = 39
 _EVENT_GOT_STARTER = 34
 _EVENT_GOT_OAKS_PARCEL = 57
 _EVENT_GOT_POKEDEX = 37
@@ -34,7 +36,7 @@ def test_fresh_save_has_no_completed_milestones_and_starts_at_the_first():
 
     assert progress.completed == ()
     assert progress.current is not None
-    assert progress.current.milestone_id == "got_starter"
+    assert progress.current.milestone_id == "met_oak"
     assert [m.milestone_id for m in progress.future] == list(_EXPECTED_ORDER[1:])
 
 
@@ -61,6 +63,7 @@ def test_completing_every_milestone_leaves_no_current_or_future():
     )
     all_flags = frozenset(
         {
+            _EVENT_OAK_APPEARED_IN_PALLET,
             _EVENT_GOT_STARTER,
             _EVENT_GOT_OAKS_PARCEL,
             _EVENT_GOT_POKEDEX,
@@ -79,13 +82,19 @@ def test_completing_every_milestone_leaves_no_current_or_future():
 
 def test_split_reflects_partial_progress_through_the_scripted_list():
     event_flags = frozenset(
-        {_EVENT_GOT_STARTER, _EVENT_GOT_OAKS_PARCEL, _EVENT_GOT_POKEDEX}
+        {
+            _EVENT_OAK_APPEARED_IN_PALLET,
+            _EVENT_GOT_STARTER,
+            _EVENT_GOT_OAKS_PARCEL,
+            _EVENT_GOT_POKEDEX,
+        }
     )
     badges = ("BOULDERBADGE", "CASCADEBADGE")
 
     progress = track_milestones(event_flags=event_flags, badges=badges)
 
     assert [m.milestone_id for m in progress.completed] == [
+        "met_oak",
         "got_starter",
         "got_oaks_parcel",
         "got_pokedex",
@@ -115,21 +124,23 @@ def test_a_later_flag_completed_out_of_order_does_not_skip_the_earlier_current_m
 
     assert progress.completed == ()
     assert progress.current is not None
-    assert progress.current.milestone_id == "got_starter"
+    assert progress.current.milestone_id == "met_oak"
 
 
 def test_unrelated_event_flags_and_badges_are_ignored():
     progress = track_milestones(
-        event_flags=frozenset({0, 1, 999999}), badges=("TOWN MAP",)
+        event_flags=frozenset({1, 999999}), badges=("TOWN MAP",)
     )
 
     assert progress.completed == ()
     assert progress.current is not None
-    assert progress.current.milestone_id == "got_starter"
+    assert progress.current.milestone_id == "met_oak"
 
 
 def test_current_milestone_exposes_a_map_target_for_the_navigation_macro():
-    progress = track_milestones(event_flags=frozenset(), badges=())
+    progress = track_milestones(
+        event_flags=frozenset({_EVENT_OAK_APPEARED_IN_PALLET}), badges=()
+    )
 
     assert progress.current is not None
     target = progress.current.target
@@ -138,7 +149,9 @@ def test_current_milestone_exposes_a_map_target_for_the_navigation_macro():
 
 
 def test_target_map_advances_with_progress():
-    event_flags = frozenset({_EVENT_GOT_STARTER, _EVENT_GOT_OAKS_PARCEL})
+    event_flags = frozenset(
+        {_EVENT_OAK_APPEARED_IN_PALLET, _EVENT_GOT_STARTER, _EVENT_GOT_OAKS_PARCEL}
+    )
     progress = track_milestones(event_flags=event_flags, badges=())
 
     assert progress.current is not None
@@ -147,7 +160,7 @@ def test_target_map_advances_with_progress():
 
 
 def test_all_scripted_milestones_have_a_resolved_tile_target():
-    # All 14 scripted milestones carry a ROM-derived tile-level destination
+    # All 15 scripted milestones carry a ROM-derived tile-level destination
     # (issue #98) - `target_x`/`target_y` are only ever `None` for a future
     # milestone added without one yet (see `MilestoneTarget`'s docstring).
     progress = track_milestones(event_flags=frozenset(), badges=())

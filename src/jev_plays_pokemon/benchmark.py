@@ -128,7 +128,7 @@ def run_benchmark(
     """
     from jev_plays_pokemon import emulator
     from jev_plays_pokemon.decision import (
-        build_jev_client,
+        build_decision_client,
         make_pyboy_action_executor,
         run_turn,
     )
@@ -140,7 +140,7 @@ def run_benchmark(
     settings = settings or Settings()
 
     pyboy = emulator.boot_to_controllable_state(rom_path or emulator.DEFAULT_ROM_PATH)
-    jev_client = build_jev_client(api_key=settings.typesafe_api_key)
+    jev_client = build_decision_client(settings)
     execute_action = make_pyboy_action_executor(pyboy)
     decoder = (
         None
