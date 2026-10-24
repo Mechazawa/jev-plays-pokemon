@@ -398,6 +398,11 @@ _MAP_REDS_HOUSE_2F = 38
 _MAP_OAKS_LAB = 40
 _MAP_VIRIDIAN_MART = 42
 _MAP_VIRIDIAN_GYM = 45
+# Route 2 is two regions on one map: its south half reaches the north half and
+# Pewter City only through these three.
+_MAP_VIRIDIAN_FOREST_NORTH_GATE = 47
+_MAP_VIRIDIAN_FOREST_SOUTH_GATE = 50
+_MAP_VIRIDIAN_FOREST = 51
 _MAP_PEWTER_GYM = 54
 _MAP_CERULEAN_GYM = 65
 _MAP_BILLS_HOUSE = 88
@@ -427,6 +432,9 @@ MILESTONE_MAP_IDS: frozenset[int] = frozenset(
         _MAP_OAKS_LAB,
         _MAP_VIRIDIAN_MART,
         _MAP_VIRIDIAN_GYM,
+        _MAP_VIRIDIAN_FOREST_NORTH_GATE,
+        _MAP_VIRIDIAN_FOREST_SOUTH_GATE,
+        _MAP_VIRIDIAN_FOREST,
         _MAP_PEWTER_GYM,
         _MAP_CERULEAN_GYM,
         _MAP_BILLS_HOUSE,

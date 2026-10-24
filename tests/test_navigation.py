@@ -13,6 +13,9 @@ from jev_plays_pokemon.milestones import Milestone, MilestoneTarget
 from jev_plays_pokemon.navigation import (
     RAW_BUTTONS,
     NavigationTarget,
+    _edge_crossing,
+    _map_walkability,
+    _next_hop_from,
     _travel_graph,
     execute_button,
     execute_navigation_macro,
@@ -3828,3 +3831,24 @@ def test_the_partys_exp_total_is_the_written_species_own_level_100():
     assert _level_from_exp(curve, _EXP_LEVEL_100 + 30_000) == 100
 
     assert _level_from_exp(curve, 1_059_860) == 94
+
+
+def test_route_2s_south_half_heads_for_viridian_forest_rather_than_its_north_edge():
+    hop = _next_hop_from(13, (8, 71), 54)  # Route 2's south end, toward Pewter Gym
+
+    assert hop is not None
+    assert (hop.to_map, hop.kind) == (50, "warp")  # Viridian Forest South Gate
+
+
+def test_pallet_towns_north_crossing_is_the_walkable_gap_not_the_hop_midpoint():
+    hop = next_hop(_travel_graph(), 0, 12)  # Pallet Town -> Route 1
+    assert hop is not None
+    walk = _map_walkability(0)
+    assert walk is not None
+
+    crossing = _edge_crossing(walk, (hop.from_x, hop.from_y), (10, 5))
+
+    assert crossing is not None
+    tile, direction = crossing
+    assert direction == "up"
+    assert tile[1] == 0 and walk.is_walkable(tile)

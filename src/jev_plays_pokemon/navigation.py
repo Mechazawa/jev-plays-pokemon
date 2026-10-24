@@ -95,6 +95,8 @@ from __future__ import annotations
 import heapq
 import logging
 import math
+from collections import deque
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from functools import cache, lru_cache
 
@@ -112,6 +114,7 @@ from jev_plays_pokemon.tileset_collision import (
 )
 from jev_plays_pokemon.travel_graph import (
     MILESTONE_MAP_IDS,
+    Hop,
     TravelGraph,
     build_milestone_travel_graph,
     next_hop,
@@ -579,6 +582,141 @@ def _next_step_toward(
     return _DIRECTION_BY_DELTA.get(step)
 
 
+def _edge_tiles(
+    walk: MapWalkability, hop_tile: tuple[int, int]
+) -> tuple[frozenset[tuple[int, int]], str] | None:
+    """The tiles a map-edge connection can be crossed from, and the direction
+    that steps off the map there.
+
+    `connection_hop` names the midpoint of the overlap, which can be a tree or
+    a fence; any tile on that edge with a walkable tile inward of it crosses
+    the same connection. `None` when the hop tile is not on an edge."""
+    hop_x, hop_y = hop_tile
+    if hop_y == 0:
+        direction = "up"
+    elif hop_y == walk.height - 1:
+        direction = "down"
+    elif hop_x == 0:
+        direction = "left"
+    elif hop_x == walk.width - 1:
+        direction = "right"
+    else:
+        return None
+    inward_x, inward_y = (-delta for delta in _DIRECTIONS[direction])
+    along_x = direction in ("up", "down")
+    tiles = frozenset(
+        tile
+        for tile in walk.walkable
+        if (tile[1] == hop_y if along_x else tile[0] == hop_x)
+        and walk.is_walkable((tile[0] + inward_x, tile[1] + inward_y))
+    )
+    return tiles, direction
+
+
+def _walk_order(
+    walk: MapWalkability, start: tuple[int, int]
+) -> Iterator[tuple[int, int]]:
+    """Every tile reachable from `start`, nearest first by walking distance."""
+    reached = {start}
+    frontier = deque([start])
+    while frontier:
+        tile = frontier.popleft()
+        yield tile
+        for dx, dy in _DIRECTIONS.values():
+            neighbour = (tile[0] + dx, tile[1] + dy)
+            if (
+                neighbour not in reached
+                and walk.is_walkable(neighbour)
+                and walk.can_cross(tile, neighbour)
+            ):
+                reached.add(neighbour)
+                frontier.append(neighbour)
+
+
+def _edge_crossing(
+    walk: MapWalkability, hop_tile: tuple[int, int], here: tuple[int, int]
+) -> tuple[tuple[int, int], str] | None:
+    """The crossing tile of a connection that the player can walk to soonest,
+    and the direction that steps off the map there."""
+    edge = _edge_tiles(walk, hop_tile)
+    if edge is None:
+        return None
+    tiles, direction = edge
+    return next(
+        ((tile, direction) for tile in _walk_order(walk, here) if tile in tiles), None
+    )
+
+
+@cache
+def _regions(map_id: int) -> dict[tuple[int, int], int]:
+    """Each walkable tile of `map_id` labelled with its connected region.
+
+    Route 2 is the case that needs it: its south half reaches the north half
+    only through Viridian Forest, so a hop is only usable from the region
+    that can walk to it."""
+    walk = _map_walkability(map_id)
+    labels: dict[tuple[int, int], int] = {}
+    if walk is None:
+        return labels
+    for start in sorted(walk.walkable):
+        if start not in labels:
+            region = len(set(labels.values()))
+            labels.update(dict.fromkeys(_walk_order(walk, start), region))
+    return labels
+
+
+def _regions_near(map_id: int, tiles: Iterable[tuple[int, int]]) -> set[int]:
+    """The regions of `tiles` and of the tiles beside them: a door or a
+    landing tile can itself be unwalkable while the tile in front of it is
+    not."""
+    regions = _regions(map_id)
+    return {
+        regions[neighbour]
+        for x, y in tiles
+        for neighbour in (
+            (x, y),
+            *((x + dx, y + dy) for dx, dy in _DIRECTIONS.values()),
+        )
+        if neighbour in regions
+    }
+
+
+def _hop_regions(hop: Hop) -> set[int]:
+    """The regions of `hop.from_map` the hop can be taken from."""
+    if hop.kind == "connection":
+        walk = _map_walkability(hop.from_map)
+        edge = None if walk is None else _edge_tiles(walk, (hop.from_x, hop.from_y))
+        return {_regions(hop.from_map)[tile] for tile in edge[0]} if edge else set()
+    # A warp only fires from its own tile; Viridian Forest South Gate pairs a
+    # wall with its door, both listed as warps.
+    region = _regions(hop.from_map).get((hop.from_x, hop.from_y))
+    return set() if region is None else {region}
+
+
+def _next_hop_from(map_id: int, here: tuple[int, int], target_map: int) -> Hop | None:
+    """The first hop of the fewest-hops route to `target_map` that the player
+    can walk, searching (map, region) pairs so a hop on the far side of a
+    split map is never chosen."""
+    start_regions = _regions_near(map_id, [here])
+    queue: deque[tuple[int, int, Hop | None]] = deque(
+        (map_id, region, None) for region in start_regions
+    )
+    seen = {(map_id, region) for region in start_regions}
+    while queue:
+        current_map, region, first_hop = queue.popleft()
+        for hop in _travel_graph().hops_from(current_map):
+            if region not in _hop_regions(hop):
+                continue
+            route_start = first_hop or hop
+            if hop.to_map == target_map:
+                return route_start
+            for arrival in _regions_near(hop.to_map, [(hop.to_x, hop.to_y)]):
+                if (hop.to_map, arrival) not in seen:
+                    seen.add((hop.to_map, arrival))
+                    queue.append((hop.to_map, arrival, route_start))
+    return None
+
+
 def execute_navigation_macro(
     pyboy: PyBoy, target: NavigationTarget, max_steps: int = 128
 ) -> bool:
@@ -659,20 +797,38 @@ def execute_navigation_macro(
         if state.dialog_open or state.battle.in_battle:
             break
 
+        walk = _map_walkability(state.map_id)
+        if walk is None:
+            break
+        here = (state.player_x, state.player_y)
+
         if state.map_id == target.map_id:
             goal = (target.x, target.y)
         else:
-            hop = next_hop(_travel_graph(), state.map_id, target.map_id)
+            hop = _next_hop_from(
+                state.map_id, (state.player_x, state.player_y), target.map_id
+            )
             if hop is None:
                 break
             goal = (hop.from_x, hop.from_y)
+            if hop.kind == "connection":
+                crossing = _edge_crossing(walk, goal, here)
+                if crossing is None:
+                    break
+                goal, direction = crossing
+                if goal == here:
+                    # Standing on the edge: only a press off the map crosses it.
+                    off_map = (
+                        here[0] + _DIRECTIONS[direction][0],
+                        here[1] + _DIRECTIONS[direction][1],
+                    )
+                    if (here, off_map) in refused:
+                        break
+                    execute_button(pyboy, direction)
+                    pending = (position, off_map)
+                    continue
 
-        here = (state.player_x, state.player_y)
         if goal == here:
-            break
-
-        walk = _map_walkability(state.map_id)
-        if walk is None:
             break
 
         step = _next_step_toward(
