@@ -228,6 +228,7 @@ def wrap_for_stuck_detection(
     )
     last_position: list[Position | None] = [None]
     last_milestone: list[Milestone | None] = [None]
+    last_in_battle = [False]
     # Where the most recent reload left the player, or None once they have
     # been somewhere else since (see the progress check below).
     reloaded_into: list[Position | None] = [None]
@@ -239,6 +240,7 @@ def wrap_for_stuck_detection(
         state = state_source()
         last_position[0] = _position_of(state)
         last_milestone[0] = track_milestones(state.event_flags, state.badges).current
+        last_in_battle[0] = state.battle.in_battle
         return state
 
     def wrapped_execute_action(action: str) -> None:
@@ -259,6 +261,13 @@ def wrap_for_stuck_detection(
             # that is not the run making progress.
             policy.note_progress()
             reloaded_into[0] = None
+
+        if last_in_battle[0]:
+            # A battle holds the player on one tile and repeats the same move
+            # for as long as it lasts, and it always ends on its own. Its turns
+            # would read as stuck, so they reset the window instead.
+            history.clear()
+            return
 
         history.append(TurnRecord(position=position, action=action))
 

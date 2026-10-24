@@ -219,6 +219,29 @@ def test_wrap_nudges_with_a_legal_action_once_stuck_and_does_not_double_record_i
     assert executed == ["up", "down", "up", "down", "nudge"]
 
 
+def test_wrap_never_counts_a_battle_as_stuck():
+    executed: list[str] = []
+    in_battle = BattleState(
+        in_battle=True,
+        battle_type="trainer",
+        opponent_species="SQUIRTLE",
+        opponent_level=5,
+    )
+    wrapped_state_source, wrapped_execute_action = wrap_for_stuck_detection(
+        lambda: _game_state(battle=in_battle),
+        executed.append,
+        load_snapshot=lambda: None,
+        threshold=4,
+        legal_actions=("nudge",),
+    )
+
+    for _ in range(12):
+        wrapped_state_source()
+        wrapped_execute_action("USE_MOVE_1")
+
+    assert "nudge" not in executed
+
+
 def test_wrap_nudge_pool_includes_the_navigation_macro_with_a_resolvable_target():
     # #98: `_game_state()`'s empty event_flags/badges resolve to the
     # "got_starter" milestone, which - like every milestone now - carries a
