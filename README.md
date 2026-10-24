@@ -3,7 +3,9 @@ Like Claude Plays Pokemon, but with Jev
 
 ## Usage
 
-Copy `.env.example` to `.env` and fill in at least `TYPESAFE_API_KEY`, then:
+Copy `.env.example` to `.env` and fill in at least `TYPESAFE_API_KEY`, or set
+`JEFF_URL` to let Jeff (a local Qwen3.5-2B on llama-server) decide instead of
+Jev. Then:
 
 ```
 uv run jev-plays-pokemon              # same as `run`: boot the ROM and play

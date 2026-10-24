@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     openai_vision_model: str | None = None
     dialog_decode_backend: str | None = None
     typesafe_api_key: str | None = None
+    jeff_url: str | None = None
 
 
 def load_settings(

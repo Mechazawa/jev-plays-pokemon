@@ -107,6 +107,11 @@ def main_callback(
     typesafe_api_key: str | None = typer.Option(
         None, "--typesafe-api-key", help="Overrides TYPESAFE_API_KEY."
     ),
+    jeff_url: str | None = typer.Option(
+        None,
+        "--jeff-url",
+        help="Overrides JEFF_URL. When set, Jeff decides each turn instead of Jev.",
+    ),
     env_file: Path = typer.Option(
         Path(".env"),
         "--env-file",
@@ -131,6 +136,7 @@ def main_callback(
         openai_vision_model=openai_vision_model,
         dialog_decode_backend=dialog_decode_backend,
         typesafe_api_key=typesafe_api_key,
+        jeff_url=jeff_url,
     )
     ctx.obj = settings
     if ctx.invoked_subcommand is None:
@@ -240,6 +246,7 @@ def watchdog_command(
             openai_vision_model=settings.openai_vision_model,
             dialog_decode_backend=settings.dialog_decode_backend,
             typesafe_api_key=settings.typesafe_api_key,
+            jeff_url=settings.jeff_url,
         ),
         heartbeat_path=heartbeat_path,
         heartbeat_timeout_seconds=heartbeat_timeout_seconds,

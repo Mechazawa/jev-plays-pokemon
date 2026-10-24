@@ -14,6 +14,7 @@ def test_defaults_to_none_when_nothing_is_set_anywhere(monkeypatch, tmp_path):
         openai_vision_model=None,
         dialog_decode_backend=None,
         typesafe_api_key=None,
+        jeff_url=None,
     )
 
 

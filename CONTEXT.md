@@ -8,6 +8,10 @@ A livestreamed demo where TypeSafe's Jev model plays Pokemon: Jev makes the tact
 TypeSafe's System One model: a fast (~150ms), text-only model that returns typed, constrained judgments (Choice / Score / Noul) with confidence, not free-form generated text or chain-of-thought reasoning.
 _Avoid_: the AI, the model, the LLM (this project also touches an actual vision LLM — always say "Jev" when the tactical decision-maker is meant)
 
+**Jeff**:
+A local small model (Qwen3.5-2B on llama-server, `JEFF_URL`) that can stand in for Jev. It answers the same Choice questions: the options get letter labels, and the first-token log probabilities of those letters give the pick and its confidence.
+_Avoid_: calling Jeff "Jev"; the two are different models behind the same `JevClient` interface
+
 **System One**:
 TypeSafe's product category for fast, structured-decision models, of which Jev is the flagship. Distinguishes this class of model from reasoning/"System Two" LLMs that generate free text.
 

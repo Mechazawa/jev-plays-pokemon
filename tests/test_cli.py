@@ -41,6 +41,7 @@ def test_bare_invocation_runs_the_game_with_defaults(monkeypatch, tmp_path):
         openai_vision_model=None,
         dialog_decode_backend=None,
         typesafe_api_key=None,
+        jeff_url=None,
     )
 
 
@@ -178,5 +179,6 @@ def test_watchdog_subcommand_builds_a_spawn_seam_and_runs_it(monkeypatch, tmp_pa
             "openai_vision_model": None,
             "dialog_decode_backend": None,
             "typesafe_api_key": None,
+            "jeff_url": None,
         }
     ]
